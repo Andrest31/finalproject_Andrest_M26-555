@@ -173,3 +173,133 @@ class Wallet:
             currency_code=data["currency_code"],
             balance=data["balance"],
         )
+
+
+class Portfolio:
+    """Портфель валютных кошельков пользователя."""
+
+    def __init__(
+        self,
+        user: User,
+        wallets: dict[str, Wallet] | None = None,
+    ):
+        if not isinstance(user, User):
+            raise TypeError("Портфель должен принадлежать пользователю")
+
+        self._user = user
+        self._user_id = user.user_id
+        self._wallets: dict[str, Wallet] = {}
+
+        if wallets is not None:
+            for code, wallet in wallets.items():
+                if not isinstance(wallet, Wallet):
+                    raise TypeError("Значением должен быть объект Wallet")
+                if code.upper() != wallet.currency_code:
+                    raise ValueError("Код валюты не совпадает с кошельком")
+                if code.upper() in self._wallets:
+                    raise ValueError("Кошелёк с такой валютой уже существует")
+
+                self._wallets[code.upper()] = wallet
+
+    @property
+    def user(self) -> User:
+        """Возвращает владельца портфеля."""
+        return self._user
+
+    @property
+    def user_id(self) -> int:
+        """Возвращает идентификатор владельца."""
+        return self._user_id
+
+    @property
+    def wallets(self) -> dict[str, Wallet]:
+        """Возвращает копию словаря кошельков."""
+        return self._wallets.copy()
+
+    def add_currency(self, currency_code: str) -> Wallet:
+        """Добавляет кошелёк, если такой валюты ещё нет."""
+        if not isinstance(currency_code, str) or not currency_code.strip():
+            raise ValueError("Код валюты не может быть пустым")
+
+        code = currency_code.strip().upper()
+
+        if code not in self._wallets:
+            self._wallets[code] = Wallet(code)
+
+        return self._wallets[code]
+
+    def get_wallet(self, currency_code: str) -> Wallet | None:
+        """Возвращает кошелёк по коду валюты."""
+        if not isinstance(currency_code, str):
+            raise TypeError("Код валюты должен быть строкой")
+
+        return self._wallets.get(currency_code.strip().upper())
+
+    def get_total_value(
+        self,
+        base_currency: str = "USD",
+        exchange_rates: dict[str, float] | None = None,
+    ) -> float:
+        """Рассчитывает стоимость портфеля в базовой валюте."""
+        if not isinstance(base_currency, str):
+            raise TypeError("Базовая валюта должна быть строкой")
+
+        base = base_currency.strip().upper()
+        if not base:
+            raise ValueError("Базовая валюта не может быть пустой")
+
+        rates = exchange_rates or {}
+        total = 0.0
+
+        for code, wallet in self._wallets.items():
+            if code == base:
+                total += wallet.balance
+                continue
+
+            pair = f"{code}_{base}"
+            reverse_pair = f"{base}_{code}"
+
+            if pair in rates:
+                rate = rates[pair]
+            elif reverse_pair in rates:
+                if rates[reverse_pair] <= 0:
+                    raise ValueError(f"Некорректный курс {reverse_pair}")
+                rate = 1 / rates[reverse_pair]
+            else:
+                raise ValueError(f"Курс {code}→{base} не найден")
+
+            if (
+                isinstance(rate, bool)
+                or not isinstance(rate, (int, float))
+                or not 0 < rate < float("inf")
+            ):
+                raise ValueError(f"Некорректный курс {pair}")
+
+            total += wallet.balance * rate
+
+        return total
+
+    def to_dict(self) -> dict:
+        """Преобразует портфель в словарь для JSON."""
+        return {
+            "user_id": self._user_id,
+            "wallets": {
+                code: wallet.to_dict() for code, wallet in self._wallets.items()
+            },
+        }
+
+    @classmethod
+    def from_dict(cls, user: User, data: dict) -> Portfolio:
+        """Восстанавливает портфель из JSON."""
+        if data["user_id"] != user.user_id:
+            raise ValueError("Портфель принадлежит другому пользователю")
+
+        wallets = {
+            code: Wallet(
+                currency_code=code,
+                balance=wallet_data["balance"],
+            )
+            for code, wallet_data in data["wallets"].items()
+        }
+
+        return cls(user=user, wallets=wallets)
