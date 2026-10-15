@@ -4,6 +4,7 @@ import math
 
 from valutatrade_hub.core.currencies import get_currency
 from valutatrade_hub.core.models import Portfolio, User
+from valutatrade_hub.decorators import log_action, log_time
 from valutatrade_hub.infra.database import DatabaseManager
 from valutatrade_hub.parser_service.updater import RatesUpdater
 
@@ -21,6 +22,7 @@ class ValutaTrade:
         """Возвращает авторизованного пользователя."""
         return self._current_user
 
+    @log_action("Регистрация пользователя")
     def register(self, username: str, password: str) -> User:
         """Регистрирует нового пользователя."""
         if not isinstance(username, str) or not username.strip():
@@ -57,6 +59,7 @@ class ValutaTrade:
 
         return user
 
+    @log_action("Авторизация пользователя")
     def login(self, username: str, password: str) -> User:
         """Авторизует пользователя по имени и паролю."""
         users = self._db.get_users()
@@ -150,6 +153,8 @@ class ValutaTrade:
         ):
             raise ValueError("Сумма должна быть положительным конечным числом")
 
+    @log_action("Покупка валюты")
+    @log_time
     def buy(self, currency_code: str, amount: float) -> float:
         """Покупает валюту за USD."""
         self._validate_amount(amount)
@@ -186,6 +191,8 @@ class ValutaTrade:
         self._save_portfolio(portfolio)
         return cost
 
+    @log_action("Продажа валюты")
+    @log_time
     def sell(self, currency_code: str, amount: float) -> float:
         """Продаёт валюту и начисляет USD."""
         self._validate_amount(amount)

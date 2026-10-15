@@ -4,6 +4,7 @@ import shlex
 
 from valutatrade_hub.core.exceptions import APIError, RateNotFoundError
 from valutatrade_hub.core.usecases import ValutaTrade
+from valutatrade_hub.logging_config import setup_logging
 from valutatrade_hub.parser_service.updater import RatesUpdater
 
 
@@ -43,6 +44,7 @@ def require_arguments(
 
 def main() -> None:
     """Запускает интерактивный CLI."""
+    setup_logging()
     app = ValutaTrade()
     updater = RatesUpdater()
 
