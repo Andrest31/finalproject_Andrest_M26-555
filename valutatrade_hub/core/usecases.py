@@ -1,8 +1,11 @@
 """Бизнес-логика приложения ValutaTrade Hub."""
 
+import math
+
 from valutatrade_hub.core.currencies import get_currency
 from valutatrade_hub.core.models import Portfolio, User
 from valutatrade_hub.infra.database import DatabaseManager
+from valutatrade_hub.parser_service.updater import RatesUpdater
 
 
 class ValutaTrade:
@@ -11,6 +14,7 @@ class ValutaTrade:
     def __init__(self):
         self._db = DatabaseManager()
         self._current_user: User | None = None
+        self._rates_updater = RatesUpdater()
 
     @property
     def current_user(self) -> User | None:
@@ -107,22 +111,34 @@ class ValutaTrade:
 
         return {code: wallet.balance for code, wallet in portfolio.wallets.items()}
 
-    @staticmethod
-    def _get_rate(currency_code: str) -> float:
-        """Возвращает временный тестовый курс в USD."""
-        test_rates = {
-            "BTC": 60000.0,
-            "ETH": 3000.0,
-            "SOL": 150.0,
-            "ADA": 0.5,
-            "DOGE": 0.2,
-            "EUR": 1.1,
-            "RUB": 0.01,
-            "GBP": 1.3,
-            "JPY": 0.007,
-            "USD": 1.0,
-        }
-        return test_rates[currency_code]
+    def _get_rate(self, currency_code: str) -> float:
+        """Возвращает актуальный курс валюты к USD."""
+        from valutatrade_hub.core.exceptions import RateNotFoundError
+
+        code = get_currency(currency_code).code
+
+        if code == "USD":
+            return 1.0
+
+        # Для торговых операций используем только свежий кеш.
+        # Если кеш устарел, запрашиваем новые курсы через API.
+        rates = self._rates_updater.update_rates()
+
+        pair = f"{code}_USD"
+
+        if pair not in rates:
+            raise RateNotFoundError(f"Курс {pair} не найден")
+
+        rate = rates[pair]
+
+        if (
+            isinstance(rate, bool)
+            or not isinstance(rate, (int, float))
+            or not 0 < rate < float("inf")
+        ):
+            raise ValueError(f"Некорректный курс {pair}")
+
+        return float(rate)
 
     @staticmethod
     def _validate_amount(amount: float) -> None:
@@ -147,6 +163,9 @@ class ValutaTrade:
         portfolio = self._load_portfolio()
         rate = self._get_rate(code)
         cost = amount * rate
+
+        if not math.isfinite(cost):
+            raise ValueError("Слишком большая сумма покупки")
 
         usd_wallet = portfolio.get_wallet("USD")
         if usd_wallet is None:
@@ -180,6 +199,9 @@ class ValutaTrade:
         portfolio = self._load_portfolio()
         rate = self._get_rate(code)
         revenue = amount * rate
+
+        if not math.isfinite(revenue):
+            raise ValueError("Слишком большая сумма продажи")
 
         currency_wallet = portfolio.get_wallet(code)
         if currency_wallet is None:
