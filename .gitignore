@@ -1,8 +1,19 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
-.env
-.ruff_cache/
+.venv/
 .pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Логи
+logs/
 *.log
+
+# Локальные данные
 data/*.json
+
+# macOS
+.DS_Store
