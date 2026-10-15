@@ -2,6 +2,7 @@ import hashlib
 import secrets
 from datetime import UTC, datetime
 
+from valutatrade_hub.core.currencies import get_currency
 from valutatrade_hub.core.exceptions import InsufficientFundsError
 
 
@@ -217,11 +218,9 @@ class Portfolio:
         return self._wallets.copy()
 
     def add_currency(self, currency_code: str) -> Wallet:
-        """Добавляет кошелёк, если такой валюты ещё нет."""
-        if not isinstance(currency_code, str) or not currency_code.strip():
-            raise ValueError("Код валюты не может быть пустым")
-
-        code = currency_code.strip().upper()
+        """Добавляет кошелёк для поддерживаемой валюты."""
+        currency = get_currency(currency_code)
+        code = currency.code
 
         if code not in self._wallets:
             self._wallets[code] = Wallet(code)
