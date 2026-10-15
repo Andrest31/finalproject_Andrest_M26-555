@@ -18,3 +18,11 @@ class CurrencyNotFoundError(Exception):
     def __init__(self, code: str):
         self.code = code
         super().__init__(f"Валюта '{code}' не поддерживается")
+
+
+class APIError(Exception):
+    """Ошибка получения данных от внешнего API."""
+
+
+class RateNotFoundError(Exception):
+    """Ошибка при отсутствии валютного курса."""
