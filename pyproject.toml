@@ -1,0 +1,33 @@
+[project]
+name = "valutatrade-hub"
+version = "0.1.0"
+description = "CLI-приложение для симуляции торговли валютами"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "prettytable>=3.18.0",
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+valutatrade = "valutatrade_hub.cli.interface:main"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<1.0.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "valutatrade_hub"
+module-root = ""
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.0",
+]
