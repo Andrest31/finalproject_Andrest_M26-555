@@ -1,4 +1,3 @@
-
 """Модели валют и фабрика валютных объектов."""
 
 from abc import ABC, abstractmethod
@@ -42,10 +41,7 @@ class FiatCurrency(Currency):
 
     def get_info(self) -> str:
         """Возвращает информацию о фиатной валюте."""
-        return (
-            f"{self.code} — {self.name} "
-            f"(фиатная валюта, {self.country})"
-        )
+        return f"{self.code} — {self.name} (фиатная валюта, {self.country})"
 
 
 class CryptoCurrency(Currency):
@@ -67,10 +63,7 @@ class CryptoCurrency(Currency):
 
     def get_info(self) -> str:
         """Возвращает информацию о криптовалюте."""
-        return (
-            f"{self.code} — {self.name} "
-            f"(криптовалюта, блокчейн: {self.blockchain})"
-        )
+        return f"{self.code} — {self.name} (криптовалюта, блокчейн: {self.blockchain})"
 
 
 CURRENCY_REGISTRY: dict[str, Currency] = {

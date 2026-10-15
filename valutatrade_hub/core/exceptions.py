@@ -11,6 +11,7 @@ class InsufficientFundsError(Exception):
             f"требуется {required:.4f} {code}"
         )
 
+
 class CurrencyNotFoundError(Exception):
     """Ошибка при обращении к неизвестной валюте."""
 

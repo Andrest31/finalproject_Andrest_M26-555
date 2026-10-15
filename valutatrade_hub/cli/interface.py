@@ -65,6 +65,10 @@ def main() -> None:
                 print("Доступные команды:")
                 print("  register --username NAME --password PASSWORD")
                 print("  login --username NAME --password PASSWORD")
+                print("  deposit --amount AMOUNT")
+                print("  show-portfolio")
+                print("  buy --currency CODE --amount AMOUNT")
+                print("  sell --currency CODE --amount AMOUNT")
                 print("  logout")
                 print("  help")
                 print("  exit")
@@ -95,6 +99,41 @@ def main() -> None:
             elif command == "logout":
                 app.logout()
                 print("Вы вышли из системы")
+
+            elif command == "deposit":
+                require_arguments(args, ("amount",))
+                amount = float(args["amount"])
+
+                app.deposit_usd(amount)
+                print(f"Баланс пополнен на {amount:.2f} USD")
+
+            elif command == "show-portfolio":
+                balances = app.show_portfolio()
+
+                if not balances:
+                    print("Портфель пуст")
+                else:
+                    print("Ваш портфель:")
+                    for code, balance in balances.items():
+                        print(f"  {code}: {balance:.4f}")
+
+            elif command == "buy":
+                require_arguments(args, ("currency", "amount"))
+
+                code = args["currency"].upper()
+                amount = float(args["amount"])
+                cost = app.buy(code, amount)
+
+                print(f"Куплено {amount:.4f} {code} за {cost:.2f} USD")
+
+            elif command == "sell":
+                require_arguments(args, ("currency", "amount"))
+
+                code = args["currency"].upper()
+                amount = float(args["amount"])
+                revenue = app.sell(code, amount)
+
+                print(f"Продано {amount:.4f} {code} за {revenue:.2f} USD")
 
             else:
                 print(f"Неизвестная команда: {command}")
