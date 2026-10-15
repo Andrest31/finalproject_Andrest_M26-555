@@ -2,7 +2,9 @@
 
 import shlex
 
+from valutatrade_hub.core.exceptions import APIError, RateNotFoundError
 from valutatrade_hub.core.usecases import ValutaTrade
+from valutatrade_hub.parser_service.updater import RatesUpdater
 
 
 def parse_arguments(args: list[str]) -> dict[str, str]:
@@ -42,6 +44,7 @@ def require_arguments(
 def main() -> None:
     """Запускает интерактивный CLI."""
     app = ValutaTrade()
+    updater = RatesUpdater()
 
     print("ValutaTrade Hub")
     print("Введите help для списка команд.")
@@ -69,6 +72,9 @@ def main() -> None:
                 print("  show-portfolio")
                 print("  buy --currency CODE --amount AMOUNT")
                 print("  sell --currency CODE --amount AMOUNT")
+                print("  update-rates")
+                print("  get-rate --currency CODE")
+                print("  show-rates")
                 print("  logout")
                 print("  help")
                 print("  exit")
@@ -135,10 +141,29 @@ def main() -> None:
 
                 print(f"Продано {amount:.4f} {code} за {revenue:.2f} USD")
 
+            elif command == "update-rates":
+                rates = updater.update_rates(force=True)
+                print(f"Курсы обновлены: {len(rates)} валютных пар")
+
+            elif command == "get-rate":
+                require_arguments(args, ("currency",))
+
+                code = args["currency"].upper()
+                rate = updater.get_rate(code)
+
+                print(f"1 {code} = {rate:.6f} USD")
+
+            elif command == "show-rates":
+                rates = updater.get_all_rates()
+
+                print("Актуальные валютные курсы:")
+                for pair, rate in sorted(rates.items()):
+                    print(f"  {pair}: {rate:.6f}")
+
             else:
                 print(f"Неизвестная команда: {command}")
 
-        except (ValueError, TypeError) as error:
+        except (ValueError, TypeError, APIError, RateNotFoundError) as error:
             print(f"Ошибка: {error}")
 
         except EOFError, KeyboardInterrupt:
