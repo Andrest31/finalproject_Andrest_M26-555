@@ -2,6 +2,8 @@ import hashlib
 import secrets
 from datetime import UTC, datetime
 
+from valutatrade_hub.core.exceptions import InsufficientFundsError
+
 
 class User:
     """Пользователь системы ValutaTrade Hub."""
@@ -96,4 +98,78 @@ class User:
             hashed_password=data["hashed_password"],
             salt=data["salt"],
             registration_date=datetime.fromisoformat(data["registration_date"]),
+        )
+
+
+class Wallet:
+    """Кошелёк для хранения баланса одной валюты."""
+
+    def __init__(self, currency_code: str, balance: float = 0.0):
+        if not isinstance(currency_code, str) or not currency_code.strip():
+            raise ValueError("Код валюты не может быть пустым")
+
+        self.currency_code = currency_code.strip().upper()
+        self._balance = 0.0
+        self.balance = balance
+
+    @property
+    def balance(self) -> float:
+        """Возвращает текущий баланс."""
+        return self._balance
+
+    @balance.setter
+    def balance(self, value: float) -> None:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise TypeError("Баланс должен быть числом")
+
+        if not 0 <= value < float("inf"):
+            raise ValueError("Баланс должен быть конечным неотрицательным числом")
+
+        self._balance = float(value)
+
+    def deposit(self, amount: float) -> None:
+        """Пополняет баланс кошелька."""
+        self._validate_amount(amount)
+        self.balance = self._balance + amount
+
+    def withdraw(self, amount: float) -> None:
+        """Списывает средства с проверкой остатка."""
+        self._validate_amount(amount)
+
+        if amount > self._balance:
+            raise InsufficientFundsError(
+                available=self._balance,
+                required=amount,
+                code=self.currency_code,
+            )
+
+        self.balance = self._balance - amount
+
+    def get_balance_info(self) -> str:
+        """Возвращает информацию о балансе."""
+        return f"{self.currency_code}: {self._balance:.4f}"
+
+    @staticmethod
+    def _validate_amount(amount: float) -> None:
+        """Проверяет корректность суммы операции."""
+        if (
+            isinstance(amount, bool)
+            or not isinstance(amount, (int, float))
+            or not 0 < amount < float("inf")
+        ):
+            raise ValueError("'amount' должен быть положительным числом")
+
+    def to_dict(self) -> dict:
+        """Преобразует кошелёк в словарь для JSON."""
+        return {
+            "currency_code": self.currency_code,
+            "balance": self._balance,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Wallet:
+        """Восстанавливает кошелёк из словаря."""
+        return cls(
+            currency_code=data["currency_code"],
+            balance=data["balance"],
         )
